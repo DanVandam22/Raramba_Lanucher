@@ -28,6 +28,145 @@ class ClickableFrame(QFrame):
         super().mousePressEvent(event)
 
 
+class AvatarFrame(ClickableFrame):
+    def __init__(self, parent: QFrame | None = None) -> None:
+        super().__init__(parent)
+        self.setAttribute(Qt.WA_Hover, True)
+
+    def enterEvent(self, event) -> None:  # type: ignore[override]
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event) -> None:  # type: ignore[override]
+        self.update()
+        super().leaveEvent(event)
+
+    def paintEvent(self, event) -> None:  # type: ignore[override]
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        hovered = self.underMouse()
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        fill_gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
+        if hovered:
+            fill_gradient.setColorAt(0.0, QColor(72, 39, 128, 250))
+            fill_gradient.setColorAt(1.0, QColor(26, 23, 57, 252))
+            border_color = QColor(231, 204, 255, 240)
+        else:
+            fill_gradient.setColorAt(0.0, QColor(56, 30, 102, 245))
+            fill_gradient.setColorAt(1.0, QColor(20, 18, 45, 250))
+            border_color = QColor(196, 164, 255, 189)
+
+        painter.setPen(QPen(border_color, 2))
+        painter.setBrush(fill_gradient)
+        painter.drawRoundedRect(rect, 12, 12)
+
+        inner_rect = rect.adjusted(1, 1, -1, -1)
+        painter.setPen(QPen(QColor(248, 240, 255, 24 if hovered else 18), 1))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(inner_rect, 11, 11)
+
+        super().paintEvent(event)
+
+
+class AccountActionButton(QPushButton):
+    def __init__(self, text: str, parent: QFrame | None = None) -> None:
+        super().__init__(text, parent)
+        self.setAttribute(Qt.WA_Hover, True)
+
+    def enterEvent(self, event) -> None:  # type: ignore[override]
+        self.update()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event) -> None:  # type: ignore[override]
+        self.update()
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event) -> None:  # type: ignore[override]
+        super().mousePressEvent(event)
+        self.update()
+
+    def mouseReleaseEvent(self, event) -> None:  # type: ignore[override]
+        super().mouseReleaseEvent(event)
+        self.update()
+
+    def changeEvent(self, event) -> None:  # type: ignore[override]
+        super().changeEvent(event)
+        self.update()
+
+    def paintEvent(self, event) -> None:  # type: ignore[override]
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        fill_gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
+
+        if not self.isEnabled():
+            fill_gradient.setColorAt(0.0, QColor(35, 26, 60, 189))
+            fill_gradient.setColorAt(1.0, QColor(18, 17, 35, 189))
+            border_color = QColor(126, 100, 182, 61)
+            text_color = QColor(218, 202, 236, 107)
+        elif self.isDown():
+            fill_gradient.setColorAt(0.0, QColor(54, 31, 97, 255))
+            fill_gradient.setColorAt(1.0, QColor(22, 18, 46, 255))
+            border_color = QColor(183, 145, 248, 224)
+            text_color = QColor(245, 236, 255)
+        elif self.underMouse():
+            fill_gradient.setColorAt(0.0, QColor(114, 68, 194, 255))
+            fill_gradient.setColorAt(0.56, QColor(66, 39, 126, 255))
+            fill_gradient.setColorAt(1.0, QColor(31, 25, 66, 255))
+            border_color = QColor(239, 220, 255, 245)
+            text_color = QColor(245, 236, 255)
+        else:
+            fill_gradient.setColorAt(0.0, QColor(92, 56, 160, 252))
+            fill_gradient.setColorAt(0.54, QColor(52, 31, 103, 252))
+            fill_gradient.setColorAt(1.0, QColor(25, 21, 57, 255))
+            border_color = QColor(222, 193, 255, 189)
+            text_color = QColor(245, 236, 255)
+
+        painter.setPen(QPen(border_color, 2))
+        painter.setBrush(fill_gradient)
+        painter.drawRoundedRect(rect, 12, 12)
+
+        inner_rect = rect.adjusted(1, 1, -1, -1)
+        painter.setPen(QPen(QColor(250, 244, 255, 18), 1))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(inner_rect, 11, 11)
+
+        content_rect = rect.adjusted(4, 4, -4, -4)
+        if not self.icon().isNull():
+            icon_size = self.iconSize()
+            pixmap = self.icon().pixmap(icon_size)
+            x = int(content_rect.center().x() - pixmap.width() / 2)
+            y = int(content_rect.center().y() - pixmap.height() / 2)
+            painter.drawPixmap(x, y, pixmap)
+        elif self.text():
+            painter.setPen(text_color)
+            painter.drawText(content_rect, Qt.AlignCenter, self.text())
+
+class AccountBlock(QFrame):
+    def paintEvent(self, event) -> None:  # type: ignore[override]
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        fill_gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
+        fill_gradient.setColorAt(0.0, QColor(34, 23, 66, 210))
+        fill_gradient.setColorAt(0.52, QColor(20, 18, 43, 224))
+        fill_gradient.setColorAt(1.0, QColor(13, 13, 32, 235))
+
+        painter.setPen(QPen(QColor(177, 142, 248, 153), 2))
+        painter.setBrush(fill_gradient)
+        painter.drawRoundedRect(rect, 14, 14)
+
+        inner_rect = rect.adjusted(1, 1, -1, -1)
+        painter.setPen(QPen(QColor(245, 233, 255, 32), 1))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(inner_rect, 13, 13)
+
+        super().paintEvent(event)
+
+
 class CenterPanel(QFrame):
     mod_requested = Signal()
     play_requested = Signal()
@@ -59,19 +198,18 @@ class CenterPanel(QFrame):
         box.setContentsMargins(24, 20, 24, 24)
         box.setSpacing(0)
 
-        account_block = QFrame()
+        account_block = AccountBlock()
         account_block.setObjectName("accountBlock")
         acc_layout = QHBoxLayout(account_block)
-        acc_layout.setContentsMargins(10, 8, 10, 10)
-        acc_layout.setSpacing(8)
+        acc_layout.setContentsMargins(12, 10, 12, 10)
+        acc_layout.setSpacing(10)
 
-        avatar_frame = ClickableFrame()
+        avatar_frame = AvatarFrame()
         avatar_frame.setObjectName("avatarFrame")
-        avatar_frame.setAttribute(Qt.WA_StyledBackground, True)
-        avatar_frame.setFixedSize(56, 56)
+        avatar_frame.setFixedSize(60, 60)
         avatar_frame.setCursor(Qt.PointingHandCursor)
         avatar_layout = QVBoxLayout(avatar_frame)
-        avatar_layout.setContentsMargins(4, 4, 4, 4)
+        avatar_layout.setContentsMargins(5, 5, 5, 5)
         avatar_layout.setSpacing(0)
         self.avatar_label = QLabel(texts.avatar_icon)
         self.avatar_label.setObjectName("avatar")
@@ -90,12 +228,12 @@ class CenterPanel(QFrame):
 
         acc_buttons = QHBoxLayout()
         acc_buttons.setSpacing(6)
-        self.account_action_button = QPushButton(texts.add_account_icon)
+        self.account_action_button = AccountActionButton(texts.add_account_icon)
         self.account_avatar_frame = avatar_frame
         self.account_action_button.setObjectName("accountActionButton")
         self.account_action_button.setCursor(Qt.PointingHandCursor)
         self.account_action_button.setFocusPolicy(Qt.NoFocus)
-        self.account_action_button.setFixedSize(38, 38)
+        self.account_action_button.setFixedSize(40, 40)
         acc_buttons.addWidget(self.account_action_button)
         self.account_action_button.clicked.connect(self.add_account_requested.emit)
         self.account_avatar_frame.clicked.connect(self.account_settings_requested.emit)

@@ -78,30 +78,16 @@ def build_main_window_styles() -> str:
             border: none;
         }
         #accountBlock {
-            background: qlineargradient(
-                x1: 0, y1: 0, x2: 1, y2: 1,
-                stop: 0 rgba(28, 19, 55, 0.72),
-                stop: 1 rgba(15, 14, 35, 0.78)
-            );
-            border: 1px solid rgba(154, 120, 230, 0.32);
-            border-radius: 12px;
+            background: transparent;
+            border: none;
         }
         #avatarFrame {
-            background: qlineargradient(
-                x1: 0, y1: 0, x2: 1, y2: 1,
-                stop: 0 rgba(44, 24, 82, 0.92),
-                stop: 1 rgba(17, 16, 39, 0.94)
-            );
-            border: 1px solid rgba(167, 132, 244, 0.54);
-            border-radius: 10px;
+            background: transparent;
+            border: none;
         }
         #avatarFrame:hover {
-            background: qlineargradient(
-                x1: 0, y1: 0, x2: 1, y2: 1,
-                stop: 0 rgba(58, 31, 102, 0.96),
-                stop: 1 rgba(22, 20, 49, 0.98)
-            );
-            border: 1px solid rgba(199, 168, 255, 0.8);
+            background: transparent;
+            border: none;
         }
         #avatar {
             font-size: 20px;
@@ -134,42 +120,24 @@ def build_main_window_styles() -> str:
             color: #9ca9d6;
         }
         #accountActionButton {
-            background: qlineargradient(
-                x1: 0, y1: 0, x2: 1, y2: 1,
-                stop: 0 rgba(74, 45, 134, 0.98),
-                stop: 0.54 rgba(44, 27, 88, 0.98),
-                stop: 1 rgba(23, 19, 52, 0.99)
-            );
-            border: 1px solid rgba(202, 169, 255, 0.5);
-            border-radius: 11px;
+            background: transparent;
+            border: none;
             color: #f5ecff;
+            outline: none;
             padding: 0;
         }
         #accountActionButton:hover {
-            background: qlineargradient(
-                x1: 0, y1: 0, x2: 1, y2: 1,
-                stop: 0 rgba(95, 56, 170, 0.99),
-                stop: 0.56 rgba(56, 33, 108, 0.99),
-                stop: 1 rgba(29, 23, 62, 0.99)
-            );
-            border: 1px solid rgba(226, 200, 255, 0.82);
+            background: transparent;
+            border: none;
         }
         #accountActionButton:pressed {
-            background: qlineargradient(
-                x1: 0, y1: 0, x2: 1, y2: 1,
-                stop: 0 rgba(42, 24, 77, 1.0),
-                stop: 1 rgba(19, 16, 41, 1.0)
-            );
-            border: 1px solid rgba(171, 133, 244, 0.84);
+            background: transparent;
+            border: none;
             padding-top: 1px;
         }
         #accountActionButton:disabled {
-            background: qlineargradient(
-                x1: 0, y1: 0, x2: 1, y2: 1,
-                stop: 0 rgba(35, 26, 60, 0.74),
-                stop: 1 rgba(18, 17, 35, 0.74)
-            );
-            border: 1px solid rgba(126, 100, 182, 0.2);
+            background: transparent;
+            border: none;
             color: rgba(218, 202, 236, 0.42);
         }
         #modButton {
