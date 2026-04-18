@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from PySide6.QtCore import QEasingCurve, QObject, QPropertyAnimation, Signal, Slot
 from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect
 
+from launcher.core.java_installer import JavaInstaller
 from launcher.core.launcher_service import LauncherService
 
 
@@ -33,6 +34,34 @@ class LaunchWorker(QObject):
                 details=f"Тип ошибки: {type(exc).__name__}\nПодробности: {exc}",
             )
         self.finished.emit(result.ok, result.message, result.details)
+
+
+class JavaInstallWorker(QObject):
+    progress_changed = Signal(int)
+    maximum_changed = Signal(int)
+    status_changed = Signal(str)
+    finished = Signal(bool, str, str, str)
+
+    def __init__(self, java_installer: JavaInstaller) -> None:
+        super().__init__()
+        self._java_installer = java_installer
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            result = self._java_installer.install(
+                progress_callback=self.progress_changed.emit,
+                max_callback=self.maximum_changed.emit,
+                status_callback=self.status_changed.emit,
+            )
+        except Exception as exc:
+            result = SimpleNamespace(
+                ok=False,
+                message="Не удалось установить Java.",
+                details=f"Тип ошибки: {type(exc).__name__}\nПодробности: {exc}",
+                java_path="",
+            )
+        self.finished.emit(result.ok, result.message, result.details, result.java_path)
 
 
 class WindowController:

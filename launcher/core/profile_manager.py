@@ -10,13 +10,19 @@ class Profile:
     id: str
     title: str
     version: str
+    forge_version: str = ""
 
 
 class ProfileManager:
     def __init__(self, config_manager: ConfigManager) -> None:
         self._config_manager = config_manager
         self._profiles: dict[str, Profile] = {
-            "default": Profile(id="default", title="Основная сборка", version="1.12.2")
+            "default": Profile(
+                id="default",
+                title="Основная сборка",
+                version="1.20.1",
+                forge_version="1.20.1-47.4.0",
+            )
         }
 
     def get_selected(self) -> Profile:

@@ -39,6 +39,10 @@ class ConfigManager:
     def config(self) -> LauncherConfig:
         return self._config
 
+    @property
+    def base_dir(self) -> Path:
+        return self._config_path.parent
+
     def _load(self) -> LauncherConfig:
         if not self._config_path.exists():
             config = LauncherConfig()

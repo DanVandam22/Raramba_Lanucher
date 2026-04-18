@@ -77,5 +77,5 @@ _RU_STRINGS = UIStrings(
 
 def get_ui_strings(locale: str = "ru") -> UIStrings:
     if locale.lower().startswith("ru"):
-        return replace(_RU_STRINGS, play_button_idle="ПОДПИШИ КОНТРАКТ")
-    return replace(_RU_STRINGS, play_button_idle="ПОДПИШИ КОНТРАКТ")
+        return replace(_RU_STRINGS, play_button_idle="Играть")
+    return replace(_RU_STRINGS, play_button_idle="Играть")

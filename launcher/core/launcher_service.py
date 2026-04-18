@@ -11,6 +11,7 @@ from typing import Callable
 import uuid
 
 import minecraft_launcher_lib
+import minecraft_launcher_lib.forge
 import requests
 import urllib3
 
@@ -67,9 +68,12 @@ class LauncherService:
 
         config = self._config_manager.config
         profile = self._profile_manager.get_selected()
-        version = profile.version or "1.12.2"
+        version = profile.version or "1.20.1"
+        forge_version = getattr(profile, "forge_version", "").strip()
 
-        java_path = self._resolve_java_path(config.java_path.strip() or JavaFinder.find())
+        java_path = self._resolve_java_path(
+            JavaFinder.find(config.java_path.strip(), self._config_manager.base_dir)
+        )
         if not java_path:
             return LaunchResult(
                 ok=False,
@@ -108,12 +112,23 @@ class LauncherService:
                 "setProgress": _set_progress,
                 "setMax": _set_max,
             }
-            self._install_version_with_retries(
-                version,
-                game_dir,
-                callback_dict,
-                status_callback=_set_status,
-            )
+            launch_version = version
+            if forge_version:
+                self._install_forge_with_retries(
+                    forge_version,
+                    game_dir,
+                    callback_dict,
+                    java_path=java_path,
+                    status_callback=_set_status,
+                )
+                launch_version = self._resolve_installed_forge_version_id(game_dir, forge_version)
+            else:
+                self._install_version_with_retries(
+                    version,
+                    game_dir,
+                    callback_dict,
+                    status_callback=_set_status,
+                )
 
             player_name = (config.player_name or "").strip() or "Player"
             memory_mb = max(1024, min(16384, int(config.memory_mb)))
@@ -143,7 +158,7 @@ class LauncherService:
             }
             _set_status("Запуск клиента...")
             command = minecraft_launcher_lib.command.get_minecraft_command(
-                version,
+                launch_version,
                 str(game_dir),
                 options,
             )
@@ -151,7 +166,7 @@ class LauncherService:
             if os.name == "nt" and not config.show_launch_logs:
                 popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
             self._last_process = subprocess.Popen(command, **popen_kwargs)
-            return LaunchResult(ok=True, message=f"Minecraft {version} запущен.")
+            return LaunchResult(ok=True, message=f"Minecraft {launch_version} запущен.")
         except (requests.exceptions.SSLError, urllib3.exceptions.SSLError, ssl.SSLError) as exc:
             return LaunchResult(
                 ok=False,
@@ -255,6 +270,65 @@ class LauncherService:
 
         if last_error is not None:
             raise last_error
+
+    def _install_forge_with_retries(
+        self,
+        forge_version: str,
+        game_dir: Path,
+        callback: dict[str, Callable[..., None]],
+        java_path: str,
+        status_callback: Callable[[str], None] | None = None,
+    ) -> None:
+        last_error: BaseException | None = None
+        for attempt in range(1, self.DOWNLOAD_RETRY_ATTEMPTS + 1):
+            try:
+                minecraft_launcher_lib.forge.install_forge_version(
+                    forge_version,
+                    str(game_dir),
+                    callback=callback,
+                    java=java_path,
+                )
+                return
+            except Exception as exc:
+                if not self._is_download_error(exc):
+                    raise
+                last_error = exc
+                if attempt >= self.DOWNLOAD_RETRY_ATTEMPTS:
+                    raise
+                if status_callback is not None:
+                    status_callback(
+                        f"Соединение прервалось. Повторяем установку Forge ({attempt + 1}/{self.DOWNLOAD_RETRY_ATTEMPTS})..."
+                    )
+                time.sleep(self.DOWNLOAD_RETRY_DELAY_SECONDS * attempt)
+
+        if last_error is not None:
+            raise last_error
+
+    @staticmethod
+    def _resolve_installed_forge_version_id(game_dir: Path, forge_version: str) -> str:
+        versions_dir = game_dir / "versions"
+        if not versions_dir.exists():
+            return forge_version
+
+        direct_json = versions_dir / forge_version / f"{forge_version}.json"
+        if direct_json.exists():
+            return forge_version
+
+        suffix = forge_version.split("-", 1)[-1]
+        candidates: list[str] = []
+        for child in versions_dir.iterdir():
+            if not child.is_dir():
+                continue
+            version_id = child.name
+            version_json = child / f"{version_id}.json"
+            if not version_json.exists():
+                continue
+            if version_id == forge_version or forge_version in version_id or suffix in version_id:
+                candidates.append(version_id)
+
+        if candidates:
+            return max(candidates, key=len)
+        return forge_version
 
     def _refresh_ely_session_if_needed(self) -> LaunchResult | None:
         config = self._config_manager.config

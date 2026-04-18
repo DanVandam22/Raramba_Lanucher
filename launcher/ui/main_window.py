@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (
 )
 
 from launcher.core.config_manager import ConfigManager
+from launcher.core.java_finder import JavaFinder
+from launcher.core.java_installer import JavaInstaller
 from launcher.core.profile_manager import ProfileManager
 from launcher.core.launcher_service import LauncherService
 from launcher.ui.account_controller import AccountController
@@ -31,7 +33,7 @@ from launcher.ui.panels import CenterPanel, LeftPanel, SettingsPanel
 from launcher.ui.theme import build_main_window_styles
 from launcher.ui.title_bar import TitleBar
 from launcher.ui.widgets import BackgroundWidget
-from launcher.ui.window_controller import LaunchWorker, WindowController
+from launcher.ui.window_controller import JavaInstallWorker, LaunchWorker, WindowController
 
 
 class MainWindow(QMainWindow):
@@ -55,6 +57,9 @@ class MainWindow(QMainWindow):
 
         self.launch_thread: QThread | None = None
         self.launch_worker: LaunchWorker | None = None
+        self.java_install_thread: QThread | None = None
+        self.java_install_worker: JavaInstallWorker | None = None
+        self.java_installer = JavaInstaller(config_manager)
         self.game_watch_timer = QTimer(self)
         self.game_watch_timer.setInterval(1500)
         self.game_watch_timer.timeout.connect(self._sync_game_running_state)
@@ -559,7 +564,14 @@ class MainWindow(QMainWindow):
     def _on_play_clicked(self) -> None:
         if self._is_launch_in_progress():
             return
+        if self._is_java_install_in_progress():
+            return
         self._persist_settings()
+        if not self._ensure_java_ready():
+            return
+        self._start_game_launch()
+
+    def _start_game_launch(self) -> None:
         self.game_watch_timer.stop()
         self._set_play_state("loading")
         self.play_button.setEnabled(False)
@@ -585,6 +597,58 @@ class MainWindow(QMainWindow):
         self.launch_thread.finished.connect(self.launch_thread.deleteLater)
         self.launch_thread.finished.connect(self._on_launch_thread_finished)
         self.launch_thread.start()
+
+    def _ensure_java_ready(self) -> bool:
+        java_path = JavaFinder.find(
+            self.config_manager.config.java_path,
+            self.config_manager.base_dir,
+        )
+        if java_path:
+            if self.config_manager.config.java_path != java_path:
+                self.config_manager.update(java_path=java_path)
+            return True
+
+        dialog = QMessageBox(self)
+        dialog.setIcon(QMessageBox.Question)
+        dialog.setWindowTitle("Java не найдена")
+        dialog.setText("Лаунчер не обнаружил установленную Java 17.")
+        dialog.setInformativeText("Установить Java автоматически сейчас?")
+        yes_button = dialog.addButton("Да", QMessageBox.AcceptRole)
+        dialog.addButton("Нет", QMessageBox.RejectRole)
+        dialog.exec()
+
+        if dialog.clickedButton() is not yes_button:
+            return False
+
+        self._start_java_install()
+        return False
+
+    def _start_java_install(self) -> None:
+        self.game_watch_timer.stop()
+        self._set_play_state("loading")
+        self.play_button.setEnabled(False)
+        self.play_button.setText("Установка Java")
+        self.launch_progress.setFormat("Подготавливаем установку Java...")
+        self.launch_progress.setMaximum(0)
+        self.launch_progress.setValue(0)
+        self._position_launch_progress()
+        self.launch_progress.raise_()
+        self.launch_progress.show()
+
+        self.java_install_thread = QThread(self)
+        self.java_install_worker = JavaInstallWorker(self.java_installer)
+        self.java_install_worker.moveToThread(self.java_install_thread)
+
+        self.java_install_thread.started.connect(self.java_install_worker.run)
+        self.java_install_worker.progress_changed.connect(self._on_launch_progress)
+        self.java_install_worker.maximum_changed.connect(self._on_launch_maximum)
+        self.java_install_worker.status_changed.connect(self._on_launch_status)
+        self.java_install_worker.finished.connect(self._on_java_install_finished)
+        self.java_install_worker.finished.connect(self.java_install_thread.quit)
+        self.java_install_worker.finished.connect(self.java_install_worker.deleteLater)
+        self.java_install_thread.finished.connect(self.java_install_thread.deleteLater)
+        self.java_install_thread.finished.connect(self._on_java_install_thread_finished)
+        self.java_install_thread.start()
 
     @Slot(int)
     def _on_launch_progress(self, value: int) -> None:
@@ -630,6 +694,23 @@ class MainWindow(QMainWindow):
         if not ok:
             self._show_launch_error_dialog(message, details)
 
+    @Slot(bool, str, str, str)
+    def _on_java_install_finished(self, ok: bool, message: str, details: str, java_path: str) -> None:
+        if ok:
+            if java_path:
+                self.config_manager.update(java_path=java_path)
+            self._show_save_toast(message)
+            self._start_game_launch()
+            return
+
+        self.launch_progress.hide()
+        self.launch_progress.setMaximum(100)
+        self.launch_progress.setValue(0)
+        self._set_play_state("idle")
+        self.play_button.setEnabled(True)
+        self.play_button.setText(self.texts.play_button_idle)
+        self._show_warning_dialog("Установка Java", details or message)
+
     def _show_launch_error_dialog(self, message: str, details: str) -> None:
         dialog = QMessageBox(self)
         dialog.setIcon(QMessageBox.Warning)
@@ -662,6 +743,11 @@ class MainWindow(QMainWindow):
         self.launch_thread = None
         self.launch_worker = None
 
+    @Slot()
+    def _on_java_install_thread_finished(self) -> None:
+        self.java_install_thread = None
+        self.java_install_worker = None
+
     def _save_settings_silent(self) -> None:
         self._persist_settings()
 
@@ -678,12 +764,18 @@ class MainWindow(QMainWindow):
     def _is_launch_in_progress(self) -> bool:
         return self.launch_thread is not None and self.launch_thread.isRunning()
 
+    def _is_java_install_in_progress(self) -> bool:
+        return self.java_install_thread is not None and self.java_install_thread.isRunning()
+
     def closeEvent(self, event) -> None:  # type: ignore[override]
         self.game_watch_timer.stop()
         self.account_controller.shutdown()
         if self._is_launch_in_progress():
             self.launch_thread.quit()
             self.launch_thread.wait(3000)
+        if self._is_java_install_in_progress():
+            self.java_install_thread.quit()
+            self.java_install_thread.wait(3000)
         super().closeEvent(event)
 
     def _open_game_folder(self) -> None:
