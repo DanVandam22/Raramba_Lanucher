@@ -37,7 +37,7 @@ from launcher.ui.window_controller import JavaInstallWorker, LaunchWorker, Windo
 
 
 class MainWindow(QMainWindow):
-    MEMORY_PRESETS_MB = (4096, 6144, 8192)
+    MEMORY_PRESETS_MB = (6144, 8192, 10240)
 
     def __init__(
         self,
@@ -752,12 +752,18 @@ class MainWindow(QMainWindow):
         self._persist_settings()
 
     def _persist_settings(self, notify: bool = False) -> None:
+        memory_mb = self._memory_mb_from_slider(self.memory_slider.value())
         self.config_manager.update(
             game_dir=self.game_dir_input.text().strip() or self._default_minecraft_dir(),
-            memory_mb=self._memory_mb_from_slider(self.memory_slider.value()),
+            memory_mb=memory_mb,
             close_after_launch=self.close_after_launch_checkbox.isChecked(),
             show_launch_logs=self.show_launch_logs_checkbox.isChecked(),
         )
+        saved_slider_value = self._slider_from_memory_mb(self.config_manager.config.memory_mb)
+        if self.memory_slider.value() != saved_slider_value:
+            self.memory_slider.setValue(saved_slider_value)
+        else:
+            self._on_memory_changed(saved_slider_value)
         if notify:
             self._show_save_toast()
 

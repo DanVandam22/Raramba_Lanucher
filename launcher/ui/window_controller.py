@@ -71,46 +71,56 @@ class WindowController:
         self.left_panel_open = False
         self.right_panel_open = False
 
+        # Left panel animations - parallel width + fade
         self.left_anim = QPropertyAnimation(self._left_panel, b"maximumWidth", parent)
-        self.left_anim.setDuration(320)
-        self.left_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        self.left_anim.setDuration(300)
+        self.left_anim.setEasingCurve(QEasingCurve.OutQuart)
+
         self.left_opacity_effect = QGraphicsOpacityEffect(self._left_panel)
         self.left_opacity_effect.setOpacity(0.0)
         self._left_panel.setGraphicsEffect(self.left_opacity_effect)
         self.left_fade_anim = QPropertyAnimation(self.left_opacity_effect, b"opacity", parent)
-        self.left_fade_anim.setDuration(260)
-        self.left_fade_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        self.left_fade_anim.setDuration(300)
+        self.left_fade_anim.setEasingCurve(QEasingCurve.OutQuart)
 
+        # Right panel animations - parallel width + fade
         self.right_anim = QPropertyAnimation(self._right_panel, b"maximumWidth", parent)
-        self.right_anim.setDuration(320)
-        self.right_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        self.right_anim.setDuration(300)
+        self.right_anim.setEasingCurve(QEasingCurve.OutQuart)
+
         self.right_opacity_effect = QGraphicsOpacityEffect(self._right_panel)
         self.right_opacity_effect.setOpacity(0.0)
         self._right_panel.setGraphicsEffect(self.right_opacity_effect)
         self.right_fade_anim = QPropertyAnimation(self.right_opacity_effect, b"opacity", parent)
-        self.right_fade_anim.setDuration(260)
-        self.right_fade_anim.setEasingCurve(QEasingCurve.InOutCubic)
+        self.right_fade_anim.setDuration(300)
+        self.right_fade_anim.setEasingCurve(QEasingCurve.OutQuart)
 
     def toggle_left_panel(self) -> None:
         self.left_panel_open = not self.left_panel_open
         target = 360 if self.left_panel_open else 0
+
         self.left_anim.stop()
         self.left_anim.setStartValue(self._left_panel.maximumWidth())
         self.left_anim.setEndValue(target)
+
         self.left_fade_anim.stop()
         self.left_fade_anim.setStartValue(self.left_opacity_effect.opacity())
         self.left_fade_anim.setEndValue(1.0 if self.left_panel_open else 0.0)
+
         self.left_anim.start()
         self.left_fade_anim.start()
 
     def toggle_right_panel(self) -> None:
         self.right_panel_open = not self.right_panel_open
         target = 340 if self.right_panel_open else 0
+
         self.right_anim.stop()
         self.right_anim.setStartValue(self._right_panel.maximumWidth())
         self.right_anim.setEndValue(target)
+
         self.right_fade_anim.stop()
         self.right_fade_anim.setStartValue(self.right_opacity_effect.opacity())
         self.right_fade_anim.setEndValue(1.0 if self.right_panel_open else 0.0)
+
         self.right_anim.start()
         self.right_fade_anim.start()

@@ -70,6 +70,8 @@ class _SilentHTTPErrorProcessor(HTTPErrorProcessor):
 class AccountController(QObject):
     toast_requested = Signal(str)
     warning_requested = Signal(str, str)
+    avatar_loading_started = Signal()
+    avatar_loading_finished = Signal()
 
     def __init__(
         self,
@@ -211,14 +213,17 @@ class AccountController(QObject):
 
         self._account_avatar_label.setPixmap(QPixmap())
         self._account_avatar_label.setText(self._texts.avatar_icon)
+        self._account_status_label.setText(self._texts.account_status_loading_avatar)
 
         self._stop_avatar_loader()
         try:
             opener = build_opener(HTTPHandler, HTTPSHandler, _SilentHTTPErrorProcessor)
             avatar_url = self._resolve_avatar_url(opener, session)
         except (URLError, TimeoutError, OSError, json.JSONDecodeError):
+            self._account_status_label.setText(self._texts.account_status_connected)
             return
 
+        self.avatar_loading_started.emit()
         self._avatar_thread = QThread(self)
         self._avatar_worker = AvatarLoaderWorker(session.username, avatar_url, cache_path)
         self._avatar_worker.moveToThread(self._avatar_thread)
@@ -257,7 +262,11 @@ class AccountController(QObject):
 
     @Slot(str, bytes)
     def _on_avatar_loaded(self, username: str, skin_bytes: bytes) -> None:
+        if username != self._avatar_request_username:
+            return
         self._apply_avatar_bytes(username, skin_bytes)
+        self._account_status_label.setText(self._texts.account_status_connected)
+        self.avatar_loading_finished.emit()
 
     @Slot(str)
     def _on_avatar_failed(self, username: str) -> None:
@@ -265,6 +274,8 @@ class AccountController(QObject):
             return
         self._account_avatar_label.setPixmap(QPixmap())
         self._account_avatar_label.setText(self._texts.avatar_icon)
+        self._account_status_label.setText(self._texts.account_status_connected)
+        self.avatar_loading_finished.emit()
 
     @Slot()
     def _on_avatar_thread_finished(self) -> None:

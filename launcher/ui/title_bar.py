@@ -67,12 +67,14 @@ class TitleBar(QFrame):
         self.min_button.setObjectName("titleBarButton")
         self.min_button.setFixedSize(34, 26)
         self.min_button.setFocusPolicy(Qt.NoFocus)
+        self.min_button.setAccessibleName("Minimize")
         self.min_button.clicked.connect(self.minimize_requested.emit)
 
         self.close_button = WindowControlButton("close")
         self.close_button.setObjectName("titleBarCloseButton")
         self.close_button.setFixedSize(34, 26)
         self.close_button.setFocusPolicy(Qt.NoFocus)
+        self.close_button.setAccessibleName("Close")
         self.close_button.clicked.connect(self.close_requested.emit)
 
         row.addWidget(self.icon_label)
@@ -101,7 +103,9 @@ class TitleBar(QFrame):
                 return
             if not window.isMaximized():
                 self._manual_drag_active = True
-                self._manual_drag_offset = event.globalPosition().toPoint() - window.frameGeometry().topLeft()
+                # Use screen-relative position for HiDPI compatibility
+                screen_geo = window.geometry()
+                self._manual_drag_offset = event.globalPosition().toPoint() - screen_geo.topLeft()
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:  # type: ignore[override]

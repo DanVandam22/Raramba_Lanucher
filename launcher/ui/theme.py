@@ -220,6 +220,11 @@ def build_main_window_styles() -> str:
             color: #dcfce7;
             border: 2px solid #449d78;
         }
+        #playButton:disabled {
+            background: rgba(30, 35, 52, 0.88);
+            border: 2px solid rgba(80, 90, 120, 0.5);
+            color: #7a8499;
+        }
         #hintText {
             color: #d1d5db;
             font-size: 12px;
